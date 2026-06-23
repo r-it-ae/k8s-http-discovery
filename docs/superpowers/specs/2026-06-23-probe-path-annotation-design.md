@@ -56,6 +56,7 @@ Le label `path` reflète le probe path (`/healthz`). Les paths déclarés dans l
 - `networking.k8s.io/v1` Ingress
 - `gateway.networking.k8s.io/v1` HTTPRoute
 - `apisix.apache.org/v2` ApisixRoute
+- `route.openshift.io/v1` Route (OpenShift)
 
 ### Logique de résolution dans chaque collecteur
 
@@ -96,14 +97,53 @@ Dans la boucle de collecte, lire `obj.GetAnnotations()`. Si probe path défini, 
 
 Idem : lire `obj.GetAnnotations()`. Si probe path défini, émettre une target par host.
 
+### `internal/collector/opensiftroute.go` (nouveau fichier)
+
+```go
+type OpenShiftRouteCollector struct {
+    dynClient dynamic.Interface
+    config    *config.Config
+}
+func NewOpenShiftRouteCollector(dynClient dynamic.Interface, cfg *config.Config) *OpenShiftRouteCollector
+func (c *OpenShiftRouteCollector) Name() string { return "openshiftroute" }
+```
+
+GVR : `route.openshift.io/v1/routes`
+
+Structure d'une Route OpenShift :
+- `spec.host` — hostname unique (string)
+- `spec.path` — path unique, défaut `/` si absent
+- `spec.tls` — si non null, scheme = `https` ; sinon `http`
+
+Logique :
+```
+scheme = "http"
+si spec.tls != nil : scheme = "https"
+host = spec.host
+path = spec.path (défaut "/")
+probe = probePath(annotations)
+si probe != "" : path = probe
+émettre Target{URL: scheme://host/path, Labels{namespace, route_name, route_kind="OpenShiftRoute", host, path}}
+```
+
+Une seule target par Route (pas de fan-out, la CR ne déclare qu'un host et un path).
+
+Support annotation probe-path : si présente, remplace `spec.path`.
+
 ---
 
 ## Tests
 
-Chaque fichier de test collecteur ajoute deux cas :
+Chaque fichier de test collecteur ajoute les cas suivants :
 
 1. **Avec annotation** — ressource avec `k8s-http-discovery.io/probe-path: /healthz` et plusieurs paths déclarés → une seule target par host avec URL `scheme://host/healthz` et label `path=/healthz`.
-2. **Sans annotation** — vérification que le comportement existant est inchangé (cas déjà couverts, mais à confirmer qu'ils passent toujours).
+2. **Sans annotation** — vérification que le comportement existant est inchangé.
+
+`internal/collector/openshiftroute_test.go` (nouveau) :
+1. Route sans TLS → scheme http, path spec.path
+2. Route avec `spec.tls` → scheme https
+3. Route avec annotation probe-path → probe path utilisé à la place de spec.path
+4. Route sans spec.path → path par défaut `/`
 
 ---
 
@@ -185,3 +225,11 @@ scrape_configs:
 - Support de plusieurs probe paths via l'annotation (une seule valeur).
 - Override du scheme via annotation (feature séparée si nécessaire).
 - Filtre multi-kind dans une seule requête.
+
+---
+
+## Config par défaut mise à jour
+
+La variable d'environnement `COLLECTORS` devra lister `openshiftroute` parmi les collecteurs disponibles. Valeur par défaut suggérée : `ingress,httproute,apisixroute,openshiftroute` (ou laisser le défaut actuel et ne l'activer qu'explicitement — à décider lors de l'implémentation selon si on veut éviter les erreurs sur clusters sans OpenShift).
+
+> Note : Sur un cluster sans OpenShift, lister `openshiftroute` dans `COLLECTORS` génèrera une erreur de listing (CRD absente). Recommandation : ne pas l'ajouter au défaut, laisser l'opérateur l'activer explicitement.
