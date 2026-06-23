@@ -40,9 +40,6 @@ func TestHandler_JSON(t *testing.T) {
 	defer cancel()
 	mgr.Start(ctx)
 
-	// Give the background goroutine time to populate the cache.
-	time.Sleep(50 * time.Millisecond)
-
 	req := httptest.NewRequest(http.MethodGet, "/targets", nil)
 	w := httptest.NewRecorder()
 	mgr.Handler()(w, req)
@@ -92,8 +89,6 @@ func TestHandler_CollectorError_ReturnsPartialResults(t *testing.T) {
 	defer cancel()
 	mgr.Start(ctx)
 
-	time.Sleep(50 * time.Millisecond)
-
 	req := httptest.NewRequest(http.MethodGet, "/targets", nil)
 	w := httptest.NewRecorder()
 	mgr.Handler()(w, req)
@@ -124,8 +119,6 @@ func TestHandler_EmptyCache_ReturnsEmptyArray(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mgr.Start(ctx)
-
-	time.Sleep(50 * time.Millisecond)
 
 	req := httptest.NewRequest(http.MethodGet, "/targets", nil)
 	w := httptest.NewRecorder()
@@ -168,8 +161,6 @@ func TestHandler_SDTargetFormat(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mgr.Start(ctx)
-
-	time.Sleep(50 * time.Millisecond)
 
 	req := httptest.NewRequest(http.MethodGet, "/targets", nil)
 	w := httptest.NewRecorder()

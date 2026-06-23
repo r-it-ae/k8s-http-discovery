@@ -1,6 +1,6 @@
 module github.com/Ronan-WeScale/k8s_http_discovery
 
-go 1.25.9
+go 1.23.0
 
 require (
 	k8s.io/api v0.32.3

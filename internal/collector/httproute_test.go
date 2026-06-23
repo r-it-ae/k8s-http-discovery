@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -225,5 +224,4 @@ func TestHTTPRouteCollector_LabelValues(t *testing.T) {
 		}
 	}
 
-	_ = metav1.NamespaceAll // ensure metav1 import is used
 }

@@ -38,11 +38,13 @@ func NewManager(collectors []collector.Collector, ttl time.Duration) *Manager {
 	}
 }
 
-// Start launches a background goroutine that immediately performs the first
-// cache refresh and then repeats every ttl until ctx is cancelled.
+// Start performs the first cache refresh synchronously, then launches a
+// background goroutine that repeats every ttl until ctx is cancelled.
+// The synchronous first fill ensures the HTTP server never serves a stale
+// empty cache on startup and that readiness probes reflect real API reachability.
 func (m *Manager) Start(ctx context.Context) {
+	m.refresh(ctx) // synchronous first fill
 	go func() {
-		m.refresh(ctx)
 		ticker := time.NewTicker(m.ttl)
 		defer ticker.Stop()
 		for {
