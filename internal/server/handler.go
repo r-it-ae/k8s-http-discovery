@@ -82,6 +82,17 @@ func (m *Manager) refresh(ctx context.Context) {
 	m.mu.Unlock()
 }
 
+// filterByKind returns the subset of targets whose route_kind label matches kind.
+func filterByKind(targets []SDTarget, kind string) []SDTarget {
+	var out []SDTarget
+	for _, t := range targets {
+		if t.Labels["route_kind"] == kind {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 // Handler returns an http.HandlerFunc that serves the cached targets as a JSON
 // array conforming to the Prometheus HTTP SD format.
 func (m *Manager) Handler() http.HandlerFunc {
@@ -90,12 +101,16 @@ func (m *Manager) Handler() http.HandlerFunc {
 		cache := m.cache
 		m.mu.RUnlock()
 
-		// Ensure we always return a JSON array (never null).
-		if cache == nil {
-			cache = []SDTarget{}
+		result := cache
+		if kind := r.URL.Query().Get("kind"); kind != "" {
+			result = filterByKind(cache, kind)
 		}
 
-		data, err := json.Marshal(cache)
+		if result == nil {
+			result = []SDTarget{}
+		}
+
+		data, err := json.Marshal(result)
 		if err != nil {
 			http.Error(w, "failed to marshal targets", http.StatusInternalServerError)
 			return

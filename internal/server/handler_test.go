@@ -190,3 +190,95 @@ func TestHandler_SDTargetFormat(t *testing.T) {
 		t.Errorf("Labels[route_kind] = %q", sd.Labels["route_kind"])
 	}
 }
+
+func TestHandler_KindFilter_Ingress(t *testing.T) {
+	t.Parallel()
+
+	mc := &mockCollector{
+		name: "mixed",
+		targets: []collector.Target{
+			{URL: "https://a.com/", Labels: map[string]string{"route_kind": "Ingress", "host": "a.com", "path": "/"}},
+			{URL: "https://b.com/", Labels: map[string]string{"route_kind": "HTTPRoute", "host": "b.com", "path": "/"}},
+		},
+	}
+	mgr := NewManager([]collector.Collector{mc}, time.Minute)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mgr.Start(ctx)
+
+	req := httptest.NewRequest(http.MethodGet, "/targets?kind=Ingress", nil)
+	w := httptest.NewRecorder()
+	mgr.Handler()(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	var got []SDTarget
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected 1 target, got %d: %v", len(got), got)
+	}
+	if got[0].Labels["route_kind"] != "Ingress" {
+		t.Errorf("expected route_kind=Ingress, got %q", got[0].Labels["route_kind"])
+	}
+}
+
+func TestHandler_KindFilter_UnknownKind(t *testing.T) {
+	t.Parallel()
+
+	mc := &mockCollector{
+		name:    "ingress",
+		targets: []collector.Target{
+			{URL: "https://a.com/", Labels: map[string]string{"route_kind": "Ingress"}},
+		},
+	}
+	mgr := NewManager([]collector.Collector{mc}, time.Minute)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mgr.Start(ctx)
+
+	req := httptest.NewRequest(http.MethodGet, "/targets?kind=Unknown", nil)
+	w := httptest.NewRecorder()
+	mgr.Handler()(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	var got []SDTarget
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("expected empty array, got %d targets", len(got))
+	}
+}
+
+func TestHandler_NoKindFilter_ReturnsAll(t *testing.T) {
+	t.Parallel()
+
+	mc := &mockCollector{
+		name: "mixed",
+		targets: []collector.Target{
+			{URL: "https://a.com/", Labels: map[string]string{"route_kind": "Ingress"}},
+			{URL: "https://b.com/", Labels: map[string]string{"route_kind": "HTTPRoute"}},
+		},
+	}
+	mgr := NewManager([]collector.Collector{mc}, time.Minute)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mgr.Start(ctx)
+
+	req := httptest.NewRequest(http.MethodGet, "/targets", nil)
+	w := httptest.NewRecorder()
+	mgr.Handler()(w, req)
+
+	var got []SDTarget
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 targets, got %d", len(got))
+	}
+}
