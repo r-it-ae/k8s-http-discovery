@@ -1,7 +1,9 @@
-# Design : annotation probe-path
+# Design : probe-path annotation + filtre kind
 
 **Date:** 2026-06-23
-**Scope:** Ajout d'une annotation Kubernetes permettant de surcharger le path de monitoring sur les ressources Ingress, HTTPRoute et ApisixRoute.
+**Scope:** Deux features complémentaires pour l'endpoint HTTP SD :
+1. Annotation `k8s-http-discovery.io/probe-path` pour surcharger le path de monitoring.
+2. Query param `?kind=` pour filtrer les targets par type de ressource.
 
 ---
 
@@ -105,8 +107,81 @@ Chaque fichier de test collecteur ajoute deux cas :
 
 ---
 
+## Feature 2 : filtre `?kind=` sur l'endpoint `/targets`
+
+### Comportement
+
+Le query param `kind` filtre les targets retournées par type de ressource :
+
+| URL | Résultat |
+|-----|---------|
+| `/targets` | Toutes les targets (comportement inchangé) |
+| `/targets?kind=Ingress` | Uniquement les targets dont `route_kind=Ingress` |
+| `/targets?kind=HTTPRoute` | Uniquement les targets dont `route_kind=HTTPRoute` |
+| `/targets?kind=ApisixRoute` | Uniquement les targets dont `route_kind=ApisixRoute` |
+| `/targets?kind=Unknown` | `[]` (tableau vide, pas d'erreur) |
+
+- Un seul kind par requête.
+- Valeur non reconnue → réponse 200 avec `[]`.
+- Pas de modification du cache — le filtrage se fait au moment de servir la réponse.
+
+### Implémentation
+
+Dans `internal/server/handler.go`, le `Handler()` lit `r.URL.Query().Get("kind")`. Si non vide, filtre le slice du cache :
+
+```go
+kind := r.URL.Query().Get("kind")
+result := cached
+if kind != "" {
+    result = filterByKind(cached, kind)
+}
+```
+
+```go
+func filterByKind(targets []SDTarget, kind string) []SDTarget {
+    var out []SDTarget
+    for _, t := range targets {
+        if t.Labels["route_kind"] == kind {
+            out = append(out, t)
+        }
+    }
+    return out
+}
+```
+
+### Tests
+
+Dans `internal/server/handler_test.go` :
+
+1. Sans `?kind=` → toutes les targets retournées.
+2. `?kind=Ingress` sur un cache mixte (Ingress + HTTPRoute) → seules les targets Ingress.
+3. `?kind=Unknown` → `[]` JSON, status 200.
+
+### Exemple de config Prometheus
+
+```yaml
+scrape_configs:
+  - job_name: blackbox_ingress
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    http_sd_configs:
+      - url: http://k8s-http-discovery/targets?kind=Ingress
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      # ...
+
+  - job_name: blackbox_httproute
+    http_sd_configs:
+      - url: http://k8s-http-discovery/targets?kind=HTTPRoute
+```
+
+---
+
 ## Non-inclus (hors scope)
 
-- Validation du format du path (pas de retour d'erreur sur valeur invalide).
+- Validation du format du probe path (pas de retour d'erreur sur valeur invalide).
 - Support de plusieurs probe paths via l'annotation (une seule valeur).
 - Override du scheme via annotation (feature séparée si nécessaire).
+- Filtre multi-kind dans une seule requête.
