@@ -3,6 +3,12 @@ name: Docker Build & Push
 on:
   push:
     branches: [main]
+    paths:
+      - cmd/**
+      - internal/**
+      - go.mod
+      - go.sum
+      - Dockerfile
     tags: ['[0-9]*']
 
 env:
