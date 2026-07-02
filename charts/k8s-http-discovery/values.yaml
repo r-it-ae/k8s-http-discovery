@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/ronan-wescale/k8s-http-discovery
+  repository: ghcr.io/r-it-ae/k8s-http-discovery
   pullPolicy: IfNotPresent
   tag: ""
 

@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/Ronan-WeScale/k8s_http_discovery/internal/config"
+	"github.com/r-it-ae/k8s_http_discovery/internal/config"
 )
 
 // IngressCollector collects Prometheus HTTP SD targets from Kubernetes Ingress resources.

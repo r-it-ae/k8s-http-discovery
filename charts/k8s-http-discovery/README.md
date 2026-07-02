@@ -1,11 +1,11 @@
 # k8s-http-discovery
 
-Helm chart for [k8s-http-discovery](https://github.com/Ronan-WeScale/k8s_http_discovery), a Prometheus HTTP SD server for Kubernetes that discovers HTTP targets from Ingress, HTTPRoute (Gateway API), and ApisixRoute custom resources.
+Helm chart for [k8s-http-discovery](https://github.com/r-it-ae/k8s_http_discovery), a Prometheus HTTP SD server for Kubernetes that discovers HTTP targets from Ingress, HTTPRoute (Gateway API), and ApisixRoute custom resources.
 
 ## Installation
 
 ```bash
-helm repo add k8s-http-discovery https://ronan-wescale.github.io/k8s_http_discovery/
+helm repo add k8s-http-discovery https://r-it-ae.github.io/k8s_http_discovery/
 helm repo update
 helm install k8s-http-discovery k8s-http-discovery/k8s-http-discovery
 ```
@@ -21,7 +21,7 @@ helm uninstall k8s-http-discovery
 | Parameter                     | Description                                                          | Default                                       |
 | ------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------ |
 | `replicaCount`                | Number of replicas                                                    | `1`                                            |
-| `image.repository`            | Image repository                                                      | `ghcr.io/ronan-wescale/k8s-http-discovery`     |
+| `image.repository`            | Image repository                                                      | `ghcr.io/r-it-ae/k8s-http-discovery`     |
 | `image.pullPolicy`            | Image pull policy                                                     | `IfNotPresent`                                 |
 | `image.tag`                   | Image tag (defaults to `.Chart.AppVersion` if empty)                  | `""`                                           |
 | `serviceAccount.create`       | Whether to create a ServiceAccount                                    | `true`                                         |

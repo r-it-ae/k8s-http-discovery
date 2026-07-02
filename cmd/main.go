@@ -14,9 +14,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/Ronan-WeScale/k8s_http_discovery/internal/collector"
-	"github.com/Ronan-WeScale/k8s_http_discovery/internal/config"
-	"github.com/Ronan-WeScale/k8s_http_discovery/internal/server"
+	"github.com/r-it-ae/k8s_http_discovery/internal/collector"
+	"github.com/r-it-ae/k8s_http_discovery/internal/config"
+	"github.com/r-it-ae/k8s_http_discovery/internal/server"
 )
 
 func main() {

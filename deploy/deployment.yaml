@@ -21,7 +21,7 @@ spec:
         runAsUser: 65532
       containers:
       - name: k8s-http-discovery
-        image: ghcr.io/ronan-wescale/k8s-http-discovery:latest
+        image: ghcr.io/r-it-ae/k8s-http-discovery:latest
         imagePullPolicy: IfNotPresent
         ports:
         - name: http

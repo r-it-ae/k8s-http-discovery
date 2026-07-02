@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/Ronan-WeScale/k8s_http_discovery/internal/config"
+	"github.com/r-it-ae/k8s_http_discovery/internal/config"
 )
 
 

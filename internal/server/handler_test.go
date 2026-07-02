@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Ronan-WeScale/k8s_http_discovery/internal/collector"
+	"github.com/r-it-ae/k8s_http_discovery/internal/collector"
 )
 
 // mockCollector is a test double for collector.Collector.

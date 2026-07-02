@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Ronan-WeScale/k8s_http_discovery/internal/collector"
+	"github.com/r-it-ae/k8s_http_discovery/internal/collector"
 )
 
 // SDTarget represents a single entry in a Prometheus HTTP SD response.

@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 
-	"github.com/Ronan-WeScale/k8s_http_discovery/internal/config"
+	"github.com/r-it-ae/k8s_http_discovery/internal/config"
 )
 
 // newHTTPRoute builds an unstructured HTTPRoute for testing.

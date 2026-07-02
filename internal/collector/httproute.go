@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/Ronan-WeScale/k8s_http_discovery/internal/config"
+	"github.com/r-it-ae/k8s_http_discovery/internal/config"
 )
 
 var httprouteGVR = schema.GroupVersionResource{

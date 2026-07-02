@@ -1,4 +1,4 @@
-module github.com/Ronan-WeScale/k8s_http_discovery
+module github.com/r-it-ae/k8s_http_discovery
 
 go 1.23.0
 

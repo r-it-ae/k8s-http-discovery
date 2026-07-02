@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/fake"
 
-	"github.com/Ronan-WeScale/k8s_http_discovery/internal/config"
+	"github.com/r-it-ae/k8s_http_discovery/internal/config"
 )
 
 func newOpenShiftRoute(namespace, name string, spec map[string]interface{}, annotations map[string]string) *unstructured.Unstructured {
