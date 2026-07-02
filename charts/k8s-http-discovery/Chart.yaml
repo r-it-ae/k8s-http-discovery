@@ -2,7 +2,7 @@ apiVersion: v2
 name: k8s-http-discovery
 description: Prometheus HTTP SD server for Kubernetes — discovers HTTP targets from Ingress, HTTPRoute, ApisixRoute and OpenShift Route CRs.
 type: application
-version: 0.1.1
+version: 0.1.2
 appVersion: "latest"
 keywords:
   - prometheus
