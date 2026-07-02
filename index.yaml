@@ -3,6 +3,26 @@ entries:
   k8s-http-discovery:
   - apiVersion: v2
     appVersion: latest
+    created: "2026-07-02T11:52:07.504775216Z"
+    description: Prometheus HTTP SD server for Kubernetes — discovers HTTP targets
+      from Ingress, HTTPRoute, ApisixRoute and OpenShift Route CRs.
+    digest: ac439cf9b0e47fa1ca318fd0b739d0fd24124412ebece46baa353709bf803ce9
+    keywords:
+    - prometheus
+    - service-discovery
+    - kubernetes
+    - blackbox-exporter
+    maintainers:
+    - name: r-it-ae
+    name: k8s-http-discovery
+    sources:
+    - https://github.com/r-it-ae/k8s-http-discovery
+    type: application
+    urls:
+    - https://github.com/r-it-ae/k8s-http-discovery/releases/download/k8s-http-discovery-0.1.2/k8s-http-discovery-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
+    appVersion: latest
     created: "2026-06-24T07:44:26.86992767Z"
     description: Prometheus HTTP SD server for Kubernetes — discovers HTTP targets
       from Ingress, HTTPRoute, ApisixRoute and OpenShift Route CRs.
@@ -21,4 +41,4 @@ entries:
     urls:
     - https://github.com/Ronan-WeScale/k8s_http_discovery/releases/download/k8s-http-discovery-0.1.1/k8s-http-discovery-0.1.1.tgz
     version: 0.1.1
-generated: "2026-06-24T07:44:26.869932229Z"
+generated: "2026-07-02T11:52:07.504785185Z"
