@@ -3,6 +3,8 @@ package collector
 import (
 	"context"
 	"strings"
+
+	"github.com/r-it-ae/k8s_http_discovery/internal/config"
 )
 
 type Target struct {
@@ -67,4 +69,25 @@ func (o probeOverrides) resolve(declaredPath string) string {
 		return override
 	}
 	return declaredPath
+}
+
+// AnnotationEnabled is the annotation key used to opt a route resource into
+// discovery when config.Config.RequireAnnotation is set.
+const AnnotationEnabled = "k8s-http-discovery.io/enabled"
+
+// discoveryAllowed reports whether a route resource should be discovered.
+//
+// AnnotationEnabled: "false" always excludes the resource, regardless of
+// cfg.RequireAnnotation — it's an explicit opt-out. Otherwise, when
+// cfg.RequireAnnotation is false (the default), every resource is discovered.
+// When true, only resources carrying AnnotationEnabled: "true" are.
+func discoveryAllowed(cfg *config.Config, annotations map[string]string) bool {
+	v, ok := annotations[AnnotationEnabled]
+	if ok && v == "false" {
+		return false
+	}
+	if !cfg.RequireAnnotation {
+		return true
+	}
+	return ok && v == "true"
 }

@@ -3,16 +3,18 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type Config struct {
-	Port          string        // PORT, default "8080"
-	Namespaces    []string      // NAMESPACES CSV, default [] (all)
-	Collectors    []string      // COLLECTORS CSV, default ["ingress","httproute","apisixroute"]
-	DefaultScheme string        // DEFAULT_SCHEME, default "https"
-	CacheTTL      time.Duration // CACHE_TTL, default 30s
+	Port              string        // PORT, default "8080"
+	Namespaces        []string      // NAMESPACES CSV, default [] (all)
+	Collectors        []string      // COLLECTORS CSV, default ["ingress","httproute","apisixroute"]
+	DefaultScheme     string        // DEFAULT_SCHEME, default "https"
+	CacheTTL          time.Duration // CACHE_TTL, default 30s
+	RequireAnnotation bool          // REQUIRE_ANNOTATION, default false (discover everything)
 }
 
 func Load() (*Config, error) {
@@ -46,6 +48,14 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("invalid CACHE_TTL %q: %w", v, err)
 		}
 		cfg.CacheTTL = d
+	}
+
+	if v := os.Getenv("REQUIRE_ANNOTATION"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid REQUIRE_ANNOTATION %q: %w", v, err)
+		}
+		cfg.RequireAnnotation = b
 	}
 
 	return cfg, nil

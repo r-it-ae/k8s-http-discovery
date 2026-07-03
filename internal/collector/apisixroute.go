@@ -48,6 +48,9 @@ func (c *ApisixRouteCollector) Collect(ctx context.Context) ([]Target, error) {
 		}
 		for i := range list.Items {
 			obj := &list.Items[i]
+			if !discoveryAllowed(c.config, obj.GetAnnotations()) {
+				continue
+			}
 			name := obj.GetName()
 			namespace := obj.GetNamespace()
 

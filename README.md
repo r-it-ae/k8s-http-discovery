@@ -32,6 +32,17 @@ It supports two forms:
 
 For ApisixRoute, the override key is matched against the *cleaned* path (wildcard suffix stripped, e.g. `/api/*` → `/api/`), not the raw declared pattern. OpenShift Route only ever has one path per object, so only a single pair (or the global form) applies.
 
+## Restricting discovery to annotated resources
+
+By default (`REQUIRE_ANNOTATION=false`), every route resource in the watched namespaces is discovered. Set `REQUIRE_ANNOTATION=true` to switch to opt-in mode, where only resources carrying `k8s-http-discovery.io/enabled: "true"` are discovered:
+
+```yaml
+annotations:
+  k8s-http-discovery.io/enabled: "true"
+```
+
+Regardless of `REQUIRE_ANNOTATION`, `k8s-http-discovery.io/enabled: "false"` always excludes a resource — this lets you opt individual resources out even while discovering everything else by default.
+
 ## Endpoints
 
 | Path | Description |
@@ -67,6 +78,7 @@ The server is configured entirely through environment variables:
 | `COLLECTORS` | Comma-separated collectors to enable: `ingress`, `httproute`, `apisixroute`, `openshiftroute` | `ingress,httproute,apisixroute` |
 | `DEFAULT_SCHEME` | Scheme used when a route doesn't otherwise indicate TLS | `https` |
 | `CACHE_TTL` | How often the cache is refreshed from the Kubernetes API (Go duration, e.g. `30s`, `1m`) | `30s` |
+| `REQUIRE_ANNOTATION` | Only discover resources annotated `k8s-http-discovery.io/enabled: "true"` | `false` (discover everything) |
 
 ## Running
 

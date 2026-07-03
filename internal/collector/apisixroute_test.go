@@ -259,6 +259,88 @@ func TestApisixRouteCollector_Collect(t *testing.T) {
 	}
 }
 
+func TestApisixRouteCollector_RequireAnnotation(t *testing.T) {
+	t.Parallel()
+
+	routes := []*unstructured.Unstructured{
+		newApisixRoute("default", "unannotated", []apisixHTTPRule{
+			{hosts: []string{"skip.com"}, paths: []string{"/"}},
+		}, nil),
+		newApisixRoute("default", "annotated", []apisixHTTPRule{
+			{hosts: []string{"keep.com"}, paths: []string{"/"}},
+		}, map[string]string{"k8s-http-discovery.io/enabled": "true"}),
+	}
+
+	scheme := apisixScheme()
+	objs := make([]runtime.Object, len(routes))
+	for i, r := range routes {
+		objs[i] = r
+	}
+	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
+		map[schema.GroupVersionResource]string{apisixrouteGVR: "ApisixRouteList"},
+		objs...,
+	)
+
+	cfg := &config.Config{
+		Namespaces:        []string{"default"},
+		DefaultScheme:     "https",
+		RequireAnnotation: true,
+	}
+	col := NewApisixRouteCollector(dynClient, cfg)
+
+	targets, err := col.Collect(context.Background())
+	if err != nil {
+		t.Fatalf("Collect() error = %v", err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("expected 1 target, got %d: %v", len(targets), urlsOf(targets))
+	}
+	if targets[0].URL != "https://keep.com/" {
+		t.Errorf("expected only the annotated route to be discovered, got %q", targets[0].URL)
+	}
+}
+
+func TestApisixRouteCollector_ExplicitDisableAnnotation(t *testing.T) {
+	t.Parallel()
+
+	routes := []*unstructured.Unstructured{
+		newApisixRoute("default", "unannotated", []apisixHTTPRule{
+			{hosts: []string{"keep.com"}, paths: []string{"/"}},
+		}, nil),
+		newApisixRoute("default", "disabled", []apisixHTTPRule{
+			{hosts: []string{"skip.com"}, paths: []string{"/"}},
+		}, map[string]string{"k8s-http-discovery.io/enabled": "false"}),
+	}
+
+	scheme := apisixScheme()
+	objs := make([]runtime.Object, len(routes))
+	for i, r := range routes {
+		objs[i] = r
+	}
+	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
+		map[schema.GroupVersionResource]string{apisixrouteGVR: "ApisixRouteList"},
+		objs...,
+	)
+
+	cfg := &config.Config{
+		Namespaces:        []string{"default"},
+		DefaultScheme:     "https",
+		RequireAnnotation: false,
+	}
+	col := NewApisixRouteCollector(dynClient, cfg)
+
+	targets, err := col.Collect(context.Background())
+	if err != nil {
+		t.Fatalf("Collect() error = %v", err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("expected 1 target, got %d: %v", len(targets), urlsOf(targets))
+	}
+	if targets[0].URL != "https://keep.com/" {
+		t.Errorf("expected the explicitly disabled route to be excluded, got %q", targets[0].URL)
+	}
+}
+
 func TestCleanApisixPath(t *testing.T) {
 	t.Parallel()
 

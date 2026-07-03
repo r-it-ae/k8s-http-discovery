@@ -38,6 +38,8 @@ spec:
           value: "https"
         - name: CACHE_TTL
           value: "30s"
+        - name: REQUIRE_ANNOTATION
+          value: "false"
         resources:
           requests:
             cpu: 10m

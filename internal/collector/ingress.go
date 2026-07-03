@@ -42,7 +42,11 @@ func (c *IngressCollector) Collect(ctx context.Context) ([]Target, error) {
 			return nil, fmt.Errorf("list ingresses in namespace %q: %w", ns, err)
 		}
 		for i := range list.Items {
-			targets = append(targets, targetsFromIngress(&list.Items[i])...)
+			ing := &list.Items[i]
+			if !discoveryAllowed(c.config, ing.Annotations) {
+				continue
+			}
+			targets = append(targets, targetsFromIngress(ing)...)
 		}
 	}
 	return targets, nil

@@ -334,6 +334,128 @@ func TestIngressCollector_Collect(t *testing.T) {
 	}
 }
 
+func TestIngressCollector_RequireAnnotation(t *testing.T) {
+	t.Parallel()
+
+	ingresses := []networkingv1.Ingress{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "unannotated", Namespace: "default"},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{
+						Host: "skip.example.com",
+						IngressRuleValue: networkingv1.IngressRuleValue{
+							HTTP: &networkingv1.HTTPIngressRuleValue{
+								Paths: []networkingv1.HTTPIngressPath{{Path: "/"}},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "annotated",
+				Namespace:   "default",
+				Annotations: map[string]string{"k8s-http-discovery.io/enabled": "true"},
+			},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{
+						Host: "keep.example.com",
+						IngressRuleValue: networkingv1.IngressRuleValue{
+							HTTP: &networkingv1.HTTPIngressRuleValue{
+								Paths: []networkingv1.HTTPIngressPath{{Path: "/"}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	objs := ingressSliceToRuntimeObjects(ingresses)
+	fakeClient := fake.NewSimpleClientset(objs...)
+	cfg := &config.Config{
+		Namespaces:        []string{"default"},
+		DefaultScheme:     "https",
+		RequireAnnotation: true,
+	}
+	col := NewIngressCollector(fakeClient, cfg)
+
+	targets, err := col.Collect(context.Background())
+	if err != nil {
+		t.Fatalf("Collect() error = %v", err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("expected 1 target, got %d: %v", len(targets), urlsOf(targets))
+	}
+	if targets[0].URL != "http://keep.example.com/" {
+		t.Errorf("expected only the annotated ingress to be discovered, got %q", targets[0].URL)
+	}
+}
+
+func TestIngressCollector_ExplicitDisableAnnotation(t *testing.T) {
+	t.Parallel()
+
+	ingresses := []networkingv1.Ingress{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "unannotated", Namespace: "default"},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{
+						Host: "keep.example.com",
+						IngressRuleValue: networkingv1.IngressRuleValue{
+							HTTP: &networkingv1.HTTPIngressRuleValue{
+								Paths: []networkingv1.HTTPIngressPath{{Path: "/"}},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "disabled",
+				Namespace:   "default",
+				Annotations: map[string]string{"k8s-http-discovery.io/enabled": "false"},
+			},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{
+						Host: "skip.example.com",
+						IngressRuleValue: networkingv1.IngressRuleValue{
+							HTTP: &networkingv1.HTTPIngressRuleValue{
+								Paths: []networkingv1.HTTPIngressPath{{Path: "/"}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	objs := ingressSliceToRuntimeObjects(ingresses)
+	fakeClient := fake.NewSimpleClientset(objs...)
+	cfg := &config.Config{
+		Namespaces:        []string{"default"},
+		DefaultScheme:     "https",
+		RequireAnnotation: false,
+	}
+	col := NewIngressCollector(fakeClient, cfg)
+
+	targets, err := col.Collect(context.Background())
+	if err != nil {
+		t.Fatalf("Collect() error = %v", err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("expected 1 target, got %d: %v", len(targets), urlsOf(targets))
+	}
+	if targets[0].URL != "http://keep.example.com/" {
+		t.Errorf("expected the explicitly disabled ingress to be excluded, got %q", targets[0].URL)
+	}
+}
+
 // ingressSliceToRuntimeObjects converts a slice of Ingress to a slice of runtime.Object.
 func ingressSliceToRuntimeObjects(ingresses []networkingv1.Ingress) []runtime.Object {
 	result := make([]runtime.Object, len(ingresses))

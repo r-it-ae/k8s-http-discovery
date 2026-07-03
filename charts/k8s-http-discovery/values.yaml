@@ -31,6 +31,7 @@ config:
   collectors: "ingress,httproute,apisixroute"
   defaultScheme: "https"
   cacheTTL: "30s"
+  requireAnnotation: false
 
 resources:
   requests:

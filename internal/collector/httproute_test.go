@@ -227,6 +227,82 @@ func TestHTTPRouteCollector_Collect(t *testing.T) {
 	}
 }
 
+func TestHTTPRouteCollector_RequireAnnotation(t *testing.T) {
+	t.Parallel()
+
+	routes := []*unstructured.Unstructured{
+		newHTTPRoute("default", "unannotated", []string{"skip.example.com"}, []string{"/"}, nil),
+		newHTTPRoute("default", "annotated", []string{"keep.example.com"}, []string{"/"},
+			map[string]string{"k8s-http-discovery.io/enabled": "true"}),
+	}
+
+	scheme := httprouteScheme()
+	objs := make([]runtime.Object, len(routes))
+	for i, r := range routes {
+		objs[i] = r
+	}
+	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
+		map[schema.GroupVersionResource]string{httprouteGVR: "HTTPRouteList"},
+		objs...,
+	)
+
+	cfg := &config.Config{
+		Namespaces:        []string{"default"},
+		DefaultScheme:     "https",
+		RequireAnnotation: true,
+	}
+	col := NewHTTPRouteCollector(dynClient, cfg)
+
+	targets, err := col.Collect(context.Background())
+	if err != nil {
+		t.Fatalf("Collect() error = %v", err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("expected 1 target, got %d: %v", len(targets), urlsOf(targets))
+	}
+	if targets[0].URL != "https://keep.example.com/" {
+		t.Errorf("expected only the annotated route to be discovered, got %q", targets[0].URL)
+	}
+}
+
+func TestHTTPRouteCollector_ExplicitDisableAnnotation(t *testing.T) {
+	t.Parallel()
+
+	routes := []*unstructured.Unstructured{
+		newHTTPRoute("default", "unannotated", []string{"keep.example.com"}, []string{"/"}, nil),
+		newHTTPRoute("default", "disabled", []string{"skip.example.com"}, []string{"/"},
+			map[string]string{"k8s-http-discovery.io/enabled": "false"}),
+	}
+
+	scheme := httprouteScheme()
+	objs := make([]runtime.Object, len(routes))
+	for i, r := range routes {
+		objs[i] = r
+	}
+	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
+		map[schema.GroupVersionResource]string{httprouteGVR: "HTTPRouteList"},
+		objs...,
+	)
+
+	cfg := &config.Config{
+		Namespaces:        []string{"default"},
+		DefaultScheme:     "https",
+		RequireAnnotation: false,
+	}
+	col := NewHTTPRouteCollector(dynClient, cfg)
+
+	targets, err := col.Collect(context.Background())
+	if err != nil {
+		t.Fatalf("Collect() error = %v", err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("expected 1 target, got %d: %v", len(targets), urlsOf(targets))
+	}
+	if targets[0].URL != "https://keep.example.com/" {
+		t.Errorf("expected the explicitly disabled route to be excluded, got %q", targets[0].URL)
+	}
+}
+
 func TestHTTPRouteCollector_LabelValues(t *testing.T) {
 	t.Parallel()
 

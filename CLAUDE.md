@@ -17,7 +17,7 @@ go run ./cmd/           # run locally (needs KUBECONFIG or in-cluster)
 
 ## Architecture
 
-- `internal/config/` — env-var config loading (`PORT`, `NAMESPACES`, `COLLECTORS`, `DEFAULT_SCHEME`, `CACHE_TTL`)
+- `internal/config/` — env-var config loading (`PORT`, `NAMESPACES`, `COLLECTORS`, `DEFAULT_SCHEME`, `CACHE_TTL`, `REQUIRE_ANNOTATION`)
 - `internal/collector/` — `Collector` interface + three implementations (Ingress, HTTPRoute, ApisixRoute)
 - `internal/server/` — HTTP handler + background cache refresh goroutine
 - `cmd/main.go` — wire-up: in-cluster config, collector selection, server start

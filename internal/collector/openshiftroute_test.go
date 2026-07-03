@@ -161,3 +161,97 @@ func TestOpenShiftRouteCollector_Collect(t *testing.T) {
 	}
 }
 
+func TestOpenShiftRouteCollector_RequireAnnotation(t *testing.T) {
+	t.Parallel()
+
+	routeGVR := schema.GroupVersionResource{
+		Group:    "route.openshift.io",
+		Version:  "v1",
+		Resource: "routes",
+	}
+
+	objs := []runtime.Object{
+		newOpenShiftRoute("default", "unannotated",
+			map[string]interface{}{"host": "skip.example.com", "path": "/"},
+			nil,
+		),
+		newOpenShiftRoute("default", "annotated",
+			map[string]interface{}{"host": "keep.example.com", "path": "/"},
+			map[string]string{"k8s-http-discovery.io/enabled": "true"},
+		),
+	}
+
+	scheme := runtime.NewScheme()
+	dynClient := fake.NewSimpleDynamicClientWithCustomListKinds(scheme,
+		map[schema.GroupVersionResource]string{
+			routeGVR: "RouteList",
+		},
+		objs...,
+	)
+
+	cfg := &config.Config{
+		Namespaces:        []string{"default"},
+		DefaultScheme:     "https",
+		RequireAnnotation: true,
+	}
+
+	c := NewOpenShiftRouteCollector(dynClient, cfg)
+	targets, err := c.Collect(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("expected 1 target, got %d: %v", len(targets), targets)
+	}
+	if targets[0].URL != "http://keep.example.com/" {
+		t.Errorf("expected only the annotated route to be discovered, got %q", targets[0].URL)
+	}
+}
+
+func TestOpenShiftRouteCollector_ExplicitDisableAnnotation(t *testing.T) {
+	t.Parallel()
+
+	routeGVR := schema.GroupVersionResource{
+		Group:    "route.openshift.io",
+		Version:  "v1",
+		Resource: "routes",
+	}
+
+	objs := []runtime.Object{
+		newOpenShiftRoute("default", "unannotated",
+			map[string]interface{}{"host": "keep.example.com", "path": "/"},
+			nil,
+		),
+		newOpenShiftRoute("default", "disabled",
+			map[string]interface{}{"host": "skip.example.com", "path": "/"},
+			map[string]string{"k8s-http-discovery.io/enabled": "false"},
+		),
+	}
+
+	scheme := runtime.NewScheme()
+	dynClient := fake.NewSimpleDynamicClientWithCustomListKinds(scheme,
+		map[schema.GroupVersionResource]string{
+			routeGVR: "RouteList",
+		},
+		objs...,
+	)
+
+	cfg := &config.Config{
+		Namespaces:        []string{"default"},
+		DefaultScheme:     "https",
+		RequireAnnotation: false,
+	}
+
+	c := NewOpenShiftRouteCollector(dynClient, cfg)
+	targets, err := c.Collect(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("expected 1 target, got %d: %v", len(targets), targets)
+	}
+	if targets[0].URL != "http://keep.example.com/" {
+		t.Errorf("expected the explicitly disabled route to be excluded, got %q", targets[0].URL)
+	}
+}
+

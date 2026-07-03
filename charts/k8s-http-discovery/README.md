@@ -37,6 +37,7 @@ helm uninstall k8s-http-discovery
 | `config.collectors`           | Comma-separated collectors to enable (`COLLECTORS`)                   | `"ingress,httproute,apisixroute"`              |
 | `config.defaultScheme`        | Default scheme for targets without one (`DEFAULT_SCHEME`)             | `"https"`                                      |
 | `config.cacheTTL`             | Cache refresh interval (`CACHE_TTL`)                                  | `"30s"`                                        |
+| `config.requireAnnotation`    | Only discover resources annotated `k8s-http-discovery.io/enabled: "true"` (`REQUIRE_ANNOTATION`) | `false`             |
 | `resources`                   | Pod resource requests/limits                                          | `requests: 10m/32Mi, limits: 100m/128Mi`       |
 | `livenessProbe`               | Liveness probe configuration                                          | HTTP GET `/healthz` on port `8080`             |
 | `readinessProbe`              | Readiness probe configuration                                         | HTTP GET `/healthz` on port `8080`             |

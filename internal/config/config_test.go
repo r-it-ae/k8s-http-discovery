@@ -13,12 +13,16 @@ func TestLoadDefaults(t *testing.T) {
 	os.Unsetenv("COLLECTORS")
 	os.Unsetenv("DEFAULT_SCHEME")
 	os.Unsetenv("CACHE_TTL")
+	os.Unsetenv("REQUIRE_ANNOTATION")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
+	if cfg.RequireAnnotation {
+		t.Errorf("expected RequireAnnotation=false by default, got true")
+	}
 	if cfg.Port != "8080" {
 		t.Errorf("expected Port=8080, got %q", cfg.Port)
 	}
@@ -77,5 +81,29 @@ func TestLoadInvalidCacheTTL(t *testing.T) {
 	_, err := Load()
 	if err == nil {
 		t.Fatal("expected error for invalid CACHE_TTL, got nil")
+	}
+}
+
+func TestLoadRequireAnnotation(t *testing.T) {
+	os.Setenv("REQUIRE_ANNOTATION", "true")
+	defer os.Unsetenv("REQUIRE_ANNOTATION")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if !cfg.RequireAnnotation {
+		t.Errorf("expected RequireAnnotation=true, got false")
+	}
+}
+
+func TestLoadInvalidRequireAnnotation(t *testing.T) {
+	os.Setenv("REQUIRE_ANNOTATION", "notabool")
+	defer os.Unsetenv("REQUIRE_ANNOTATION")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error for invalid REQUIRE_ANNOTATION, got nil")
 	}
 }

@@ -37,6 +37,8 @@ spec:
           value: {{ .Values.config.defaultScheme | quote }}
         - name: CACHE_TTL
           value: {{ .Values.config.cacheTTL | quote }}
+        - name: REQUIRE_ANNOTATION
+          value: {{ .Values.config.requireAnnotation | quote }}
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
         livenessProbe:
