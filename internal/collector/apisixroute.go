@@ -58,9 +58,9 @@ func (c *ApisixRouteCollector) Collect(ctx context.Context) ([]Target, error) {
 
 			httpRules, _ := spec["http"].([]interface{})
 			scheme := c.config.DefaultScheme
-			probe := probePath(obj.GetAnnotations())
+			overrides := parseProbeOverrides(obj.GetAnnotations())
 
-			if probe != "" {
+			if overrides.global != "" {
 				// Collect all unique hosts across all rules
 				seen := make(map[string]bool)
 				for _, r := range httpRules {
@@ -77,13 +77,13 @@ func (c *ApisixRouteCollector) Collect(ctx context.Context) ([]Target, error) {
 							if s, ok := h.(string); ok && s != "" && !seen[s] {
 								seen[s] = true
 								targets = append(targets, Target{
-									URL: fmt.Sprintf("%s://%s%s", scheme, s, probe),
+									URL: fmt.Sprintf("%s://%s%s", scheme, s, overrides.global),
 									Labels: map[string]string{
 										"namespace":  namespace,
 										"route_name": name,
 										"route_kind": "ApisixRoute",
 										"host":       s,
-										"path":       probe,
+										"path":       overrides.global,
 									},
 								})
 							}
@@ -122,6 +122,7 @@ func (c *ApisixRouteCollector) Collect(ctx context.Context) ([]Target, error) {
 
 					for _, host := range hosts {
 						for _, path := range paths {
+							path := overrides.resolve(path)
 							targets = append(targets, Target{
 								URL: fmt.Sprintf("%s://%s%s", scheme, host, path),
 								Labels: map[string]string{

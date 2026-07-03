@@ -69,10 +69,7 @@ func (c *OpenShiftRouteCollector) Collect(ctx context.Context) ([]Target, error)
 			if path == "" {
 				path = "/"
 			}
-
-			if p := probePath(obj.GetAnnotations()); p != "" {
-				path = p
-			}
+			path = parseProbeOverrides(obj.GetAnnotations()).resolve(path)
 
 			targets = append(targets, Target{
 				URL: fmt.Sprintf("%s://%s%s", scheme, host, path),

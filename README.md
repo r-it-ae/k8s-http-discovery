@@ -7,7 +7,30 @@ Prometheus HTTP SD server for Kubernetes. It watches Ingress, HTTPRoute (Gateway
 - A background goroutine lists the configured resource kinds every `CACHE_TTL` and rebuilds an in-memory cache of targets. The HTTP handler always serves from that cache, so requests never block on the Kubernetes API.
 - Each `host` × `path` pair found on a route resource becomes one SD target entry, labeled with `namespace`, `route_name`, `route_kind`, `host`, and `path`. `route_kind` is one of `Ingress`, `HTTPRoute`, `ApisixRoute`, or `OpenShiftRoute` (the OpenShift `Route` kind is labeled `OpenShiftRoute` to keep it unambiguous next to the other collectors).
 - If a collector fails on a given refresh (e.g. a CRD isn't installed), its error is logged and the other collectors' results are still served — one bad collector doesn't blank the cache.
-- Add the annotation `k8s-http-discovery.io/probe-path: /some/path` on any route resource to emit a single target per host at that path instead of the route's declared paths (useful for pointing blackbox_exporter at a dedicated healthcheck path).
+
+## Overriding the probe path
+
+By default, every declared host×path on a route resource becomes a target as-is. The `k8s-http-discovery.io/probe-path` annotation lets you point at a different path instead — useful when you want blackbox_exporter to hit a dedicated healthcheck path rather than the route's real paths.
+
+It supports two forms:
+
+- **Global override** — a plain path replaces every path declared on the resource with the same one:
+
+  ```yaml
+  annotations:
+    k8s-http-discovery.io/probe-path: /healthz
+  ```
+
+- **Per-path override** — one or more comma-separated `declared-path=override-path` pairs replace only the matching declared paths; any path not listed is left untouched. This is for a single Ingress/HTTPRoute/ApisixRoute that fans out to multiple backends under different paths, each needing its own healthcheck:
+
+  ```yaml
+  annotations:
+    k8s-http-discovery.io/probe-path: "/api=/api/healthz,/web=/web/health"
+  ```
+
+  With paths `/api`, `/web`, and `/other` declared on the resource, this produces `/api/healthz`, `/web/health`, and `/other` (unchanged) as targets.
+
+For ApisixRoute, the override key is matched against the *cleaned* path (wildcard suffix stripped, e.g. `/api/*` → `/api/`), not the raw declared pattern. OpenShift Route only ever has one path per object, so only a single pair (or the global form) applies.
 
 ## Endpoints
 

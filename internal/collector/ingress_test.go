@@ -206,6 +206,42 @@ func TestIngressCollector_Collect(t *testing.T) {
 			wantLen:  1,
 		},
 		{
+			name: "probe-path annotation with per-path overrides only replaces matching paths",
+			ingresses: []networkingv1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "multi-backend-ingress",
+						Namespace: "default",
+						Annotations: map[string]string{
+							"k8s-http-discovery.io/probe-path": "/api=/api/healthz,/web=/web/health",
+						},
+					},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{
+								Host: "example.com",
+								IngressRuleValue: networkingv1.IngressRuleValue{
+									HTTP: &networkingv1.HTTPIngressRuleValue{
+										Paths: []networkingv1.HTTPIngressPath{
+											{Path: "/api"},
+											{Path: "/web"},
+											{Path: "/unmapped"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantURLs: []string{
+				"http://example.com/api/healthz",
+				"http://example.com/web/health",
+				"http://example.com/unmapped",
+			},
+			wantLen: 3,
+		},
+		{
 			name:       "empty namespace list collects all namespaces",
 			namespaces: []string{},
 			ingresses: []networkingv1.Ingress{

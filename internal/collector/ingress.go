@@ -57,7 +57,7 @@ func targetsFromIngress(ing *networkingv1.Ingress) []Target {
 		}
 	}
 
-	probe := probePath(ing.Annotations)
+	overrides := parseProbeOverrides(ing.Annotations)
 
 	var targets []Target
 	for _, rule := range ing.Spec.Rules {
@@ -69,29 +69,30 @@ func targetsFromIngress(ing *networkingv1.Ingress) []Target {
 			scheme = "https"
 		}
 
-		if probe != "" {
+		if overrides.global != "" {
 			targets = append(targets, Target{
-				URL: fmt.Sprintf("%s://%s%s", scheme, rule.Host, probe),
+				URL: fmt.Sprintf("%s://%s%s", scheme, rule.Host, overrides.global),
 				Labels: map[string]string{
 					"namespace":  ing.Namespace,
 					"route_name": ing.Name,
 					"route_kind": "Ingress",
 					"host":       rule.Host,
-					"path":       probe,
+					"path":       overrides.global,
 				},
 			})
 			continue
 		}
 
 		if rule.HTTP == nil {
+			path := overrides.resolve("/")
 			targets = append(targets, Target{
-				URL: fmt.Sprintf("%s://%s/", scheme, rule.Host),
+				URL: fmt.Sprintf("%s://%s%s", scheme, rule.Host, path),
 				Labels: map[string]string{
 					"namespace":  ing.Namespace,
 					"route_name": ing.Name,
 					"route_kind": "Ingress",
 					"host":       rule.Host,
-					"path":       "/",
+					"path":       path,
 				},
 			})
 			continue
@@ -102,6 +103,7 @@ func targetsFromIngress(ing *networkingv1.Ingress) []Target {
 			if path == "" {
 				path = "/"
 			}
+			path = overrides.resolve(path)
 			targets = append(targets, Target{
 				URL: fmt.Sprintf("%s://%s%s", scheme, rule.Host, path),
 				Labels: map[string]string{

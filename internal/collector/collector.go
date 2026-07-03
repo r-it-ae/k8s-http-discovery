@@ -1,6 +1,9 @@
 package collector
 
-import "context"
+import (
+	"context"
+	"strings"
+)
 
 type Target struct {
 	URL    string
@@ -16,9 +19,52 @@ type Collector interface {
 // path on any supported route resource.
 const AnnotationProbePath = "k8s-http-discovery.io/probe-path"
 
-// probePath returns the probe path annotation value if set, else empty string.
-// A non-empty result means the collector should emit one target per host
-// pointing to this path instead of the route's declared paths.
-func probePath(annotations map[string]string) string {
-	return annotations[AnnotationProbePath]
+// probeOverrides resolves the AnnotationProbePath value for a route.
+//
+// A value with no "=" (e.g. "/healthz") is a global override: every path
+// declared on the route is replaced by it. A value with one or more
+// comma-separated "declared-path=override-path" pairs (e.g.
+// "/api=/api/healthz,/web=/web/health") only overrides the matching declared
+// paths, leaving the others untouched — this lets a single route that fans
+// out to multiple backends assign a distinct probe path per backend.
+type probeOverrides struct {
+	global string
+	byPath map[string]string
+}
+
+// parseProbeOverrides parses the AnnotationProbePath value off annotations.
+func parseProbeOverrides(annotations map[string]string) probeOverrides {
+	raw := annotations[AnnotationProbePath]
+	if raw == "" {
+		return probeOverrides{}
+	}
+	if !strings.Contains(raw, "=") {
+		return probeOverrides{global: raw}
+	}
+
+	byPath := make(map[string]string)
+	for _, pair := range strings.Split(raw, ",") {
+		path, override, ok := strings.Cut(strings.TrimSpace(pair), "=")
+		if !ok {
+			continue
+		}
+		path, override = strings.TrimSpace(path), strings.TrimSpace(override)
+		if path != "" && override != "" {
+			byPath[path] = override
+		}
+	}
+	return probeOverrides{byPath: byPath}
+}
+
+// resolve returns the probe path to use in place of declaredPath: the global
+// override if set, the matching per-path override if any, or declaredPath
+// unchanged otherwise.
+func (o probeOverrides) resolve(declaredPath string) string {
+	if o.global != "" {
+		return o.global
+	}
+	if override, ok := o.byPath[declaredPath]; ok {
+		return override
+	}
+	return declaredPath
 }

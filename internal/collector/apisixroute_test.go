@@ -177,6 +177,23 @@ func TestApisixRouteCollector_Collect(t *testing.T) {
 			wantURLs: []string{"https://x.com/ping"},
 			wantLen:  1,
 		},
+		{
+			name: "probe-path annotation with per-path overrides only replaces matching cleaned paths",
+			routes: []*unstructured.Unstructured{
+				newApisixRoute("default", "multi-backend-route", []apisixHTTPRule{
+					{
+						hosts: []string{"x.com"},
+						paths: []string{"/api/*", "/web/*", "/unmapped"},
+					},
+				}, map[string]string{"k8s-http-discovery.io/probe-path": "/api/=/api/healthz,/web/=/web/health"}),
+			},
+			wantURLs: []string{
+				"https://x.com/api/healthz",
+				"https://x.com/web/health",
+				"https://x.com/unmapped",
+			},
+			wantLen: 3,
+		},
 	}
 
 	for _, tc := range tests {

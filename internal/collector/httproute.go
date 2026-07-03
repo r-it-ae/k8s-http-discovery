@@ -97,23 +97,24 @@ func (c *HTTPRouteCollector) Collect(ctx context.Context) ([]Target, error) {
 			}
 
 			scheme := c.config.DefaultScheme
-			probe := probePath(obj.GetAnnotations())
-			if probe != "" {
+			overrides := parseProbeOverrides(obj.GetAnnotations())
+			if overrides.global != "" {
 				for _, host := range hostnames {
 					targets = append(targets, Target{
-						URL: fmt.Sprintf("%s://%s%s", scheme, host, probe),
+						URL: fmt.Sprintf("%s://%s%s", scheme, host, overrides.global),
 						Labels: map[string]string{
 							"namespace":  namespace,
 							"route_name": name,
 							"route_kind": "HTTPRoute",
 							"host":       host,
-							"path":       probe,
+							"path":       overrides.global,
 						},
 					})
 				}
 			} else {
 				for _, host := range hostnames {
 					for _, path := range paths {
+						path := overrides.resolve(path)
 						targets = append(targets, Target{
 							URL: fmt.Sprintf("%s://%s%s", scheme, host, path),
 							Labels: map[string]string{

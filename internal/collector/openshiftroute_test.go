@@ -95,6 +95,18 @@ func TestOpenShiftRouteCollector_Collect(t *testing.T) {
 			wantURLs: []string{"http://probe.example.com/healthz"},
 			wantLen:  1,
 		},
+		{
+			name: "probe-path per-path override matching spec.path applies, non-matching leaves path untouched",
+			obj: newOpenShiftRoute("default", "keyed-probe-route",
+				map[string]interface{}{
+					"host": "keyed.example.com",
+					"path": "/original",
+				},
+				map[string]string{"k8s-http-discovery.io/probe-path": "/other=/nope"},
+			),
+			wantURLs: []string{"http://keyed.example.com/original"},
+			wantLen:  1,
+		},
 	}
 
 	for _, tc := range tests {

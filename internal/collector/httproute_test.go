@@ -145,6 +145,22 @@ func TestHTTPRouteCollector_Collect(t *testing.T) {
 			wantURLs: []string{"https://a.example.com/health", "https://b.example.com/health"},
 			wantLen:  2,
 		},
+		{
+			name: "probe-path annotation with per-path overrides only replaces matching paths",
+			routes: []*unstructured.Unstructured{
+				newHTTPRoute("default", "multi-backend-route",
+					[]string{"example.com"},
+					[]string{"/api", "/web", "/unmapped"},
+					map[string]string{"k8s-http-discovery.io/probe-path": "/api=/api/healthz,/web=/web/health"},
+				),
+			},
+			wantURLs: []string{
+				"https://example.com/api/healthz",
+				"https://example.com/web/health",
+				"https://example.com/unmapped",
+			},
+			wantLen: 3,
+		},
 	}
 
 	for _, tc := range tests {
